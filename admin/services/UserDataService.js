@@ -6,7 +6,6 @@ class UserDataService {
     get() {
         if (this.userData)
             return this.userData;
-
         if (localStorage === undefined)
             return null;
         const userData = localStorage.getItem(storageName2);
