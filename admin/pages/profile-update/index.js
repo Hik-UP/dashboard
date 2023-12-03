@@ -32,9 +32,8 @@ export default function ProfileUpdate () {
       data.roles = user_data.roles;
       data.email = email;
       data.username = username;
-      //let data = '{ "id": "' + user_data.id + '", "roles": ["'+ user_data.roles +'"], "username": "'+ username +'","email": "'+ email +'"}';
       console.log(data);
-      const response = await API.send('PUT', '/api/user/profile/update', data, true);
+      const response = await API.send('PUT', '/api/user/profile/update', data, true);   
       console.log(response);
       if (response.status == 200) {
         setShowAlert(true);

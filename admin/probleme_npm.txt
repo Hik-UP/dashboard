@@ -1,0 +1,1 @@
+Pass the --legacy-peer-deps flag when using npm commands

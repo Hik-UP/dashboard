@@ -1,20 +1,27 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
 import API from '../../services/API';
 import mapboxgl, { accessToken } from "mapbox-gl";
 import UserDataService from "../../services/UserDataService";
-
+import SearchBar from '../../components/SearchBar';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Button, Modal, Input } from 'antd';
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGljY3VwLXN0YWZmIiwiYSI6ImNsangxeHVkbzAyNmwzdHJ4cmJiYWZmMm4ifQ.yI4259jlMq2elDiT_uK1kg';
 
 
-
 export default function Control (access_token, user_data) {
-    const [newlat, setnewlat] = useState(false);
-    const [newlgn, setnewlgn] =  useState(0);
-
+    const router = useRouter();
+    const [newlat, setnewlat] = useState(-0.0);
+    const [newlgn, setnewlgn] =  useState(-0.0);
+    const [address, setaddress] =  useState('');
+    const [input, setInput] = useState('');
+    const [resultsearch, setresultsearch] = useState([]);
+    const [selectedMarker, setselectedMarker] = useState('');
+    const [parentState, setParentState] = useState('Initial Value');
+    const [Trails, setTrails] = useState([]);
     const [lngLatSelected, setlngLatSelected] = useState(false);
+    const [markersLoaded, setMarkersLoaded] = useState(false);
 
     const [username, setInputValueUsername] = useState('');
     const [email, setInputValueEmail] = useState('');
@@ -45,8 +52,92 @@ export default function Control (access_token, user_data) {
     };
 
     const handleSubmit = async () => {
-
+      updateMarker(selectedMarker);
     }
+
+
+    const updateParentState = (newState) => {
+      setParentState(newState);
+      setaddress(newState);
+      console.log(newState);
+    }
+
+    async function fetchTrails() {
+      try {
+          const user_data = UserDataService.get();
+          console.log(user_data);
+          const response = await API.fetchTrails("POST", '/api/trail/retrieve', user_data, true);
+            let trails = response.data.trails;
+            return trails;
+        } catch (error) {
+            console.error('Error fetching Trails:', error);
+        }
+    }
+
+    async function getMarker(selectedMarker) {
+      console.log('getMarker');
+      let trails = await fetchTrails();
+      console.dir(trails);
+      for (var i = 0; i < trails.length; i++) {
+        let tmp = JSON.parse(trails[i].geoJSON);
+        console.log('selectedMArker :');
+        console.dir(selectedMarker);
+        if (typeof tmp.features !== 'undefined' && typeof tmp.features[0] !== 'undefined' && typeof tmp.features[0].geometry !== 'undefined'  && typeof tmp.features[0].geometry.coordinates[0] !== 'undefined') { 
+          if (tmp.features[0].geometry.coordinates[0][0] === selectedMarker.lng && tmp.features[0].geometry.coordinates[0][1] === selectedMarker.lat) {
+            return i;
+          }
+        }
+      }
+    }
+
+    async function fetchCoordinates() {
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${address}.json?access_token=${mapboxgl.accessToken}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          console.log("response : " + data.features[0].center[0] +" "+ data.features[0].center[1]);
+
+          return (data.features[0].center);
+          console.log("here  : " + newlgn + " " + newlat);
+        } else {
+          console.error('Error fetching coordinates:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    async function updateMarker(selectedMarker) {
+      let index = await getMarker(selectedMarker);
+      console.dir(index);
+      let data = {};
+      let trails = await fetchTrails(user_data);
+      let tmp = JSON.parse(trails[index].geoJSON);
+      data.id = trails[index].id;
+      data.latitude = newlat;
+      data.longitude = newlgn;
+      console.log(typeof tmp.features[0]);
+      let coord = await fetchCoordinates();
+      console.log("fetchCoordinates : " + coord);
+      setnewlgn(coord[0]);
+      setnewlat(coord[1]);
+      tmp.features[0].geometry.coordinates[0][0] = coord[0];
+      tmp.features[0].geometry.coordinates[0][1] = coord[1];
+      console.log('tmp');
+      console.dir(tmp);
+      data.geoJSON = JSON.stringify(tmp);
+      console.log('here');
+      console.log(data);
+      const user_data = UserDataService.get();
+      const response = await API.CreateMarker('PUT', '/api/trail/update', user_data, data, true);
+      let result = response.data.trails;
+      console.log(result);
+      setIsModalOpenUpdate(false);
+      router.reload();
+    }
+
     const handleOk = async () => {
       try {
         const user_data = UserDataService.get();
@@ -79,9 +170,11 @@ export default function Control (access_token, user_data) {
         const response = await API.CreateMarker('POST', '/api/trail/create', user_data, trail, true);
         console.log(response);
         setIsModalOpen(false);
+        router.reload();
       } catch (error) {
         console.log(error);
         setIsModalOpen(false);
+        router.reload();
       }
     };
     const handleCancel = () => {
@@ -90,7 +183,8 @@ export default function Control (access_token, user_data) {
 
     useEffect(() => {
         const user_data = UserDataService.get();
-        if (map.current) return; // initialize map only once
+        loadMarker();
+        if (map.current && markersLoaded == true ) return;
         map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/streets-v12',
@@ -106,18 +200,19 @@ export default function Control (access_token, user_data) {
             trackUserLocation: true
           })
         );
-        async function fetchGeoJSON(user_data) {
+
+        async function fetchGeoJSON() {
           try {
-            console.log(user_data);
               let result = [];
-              const response = await API.send('POST', '/api/trail/retrieve', user_data, true);
+              const user_data2 = UserDataService.get();
+              const response = await API.send('POST', "/api/trail/retrieve", user_data2, true);
                 let trails = response.data.trails;
                 console.log(trails);
                 console.log(response);
                 trails.map((item) => {
                   let tmp = JSON.parse(item.geoJSON);
                   console.log(tmp);
-                  if (typeof tmp.features !== 'undefined' && typeof tmp.features[0] !== 'undefined' && 'undefined'  && typeof tmp.features[0].geometry.coordinates[0] !== 'undefined' ) {
+                  if (typeof tmp.features !== 'undefined' && typeof tmp.features[0] !== 'undefined' && typeof tmp.features[0] !==  'undefined'  && typeof tmp.features[0].geometry.coordinates[0] !== 'undefined' ) {
                     result.push(tmp.features[0].geometry.coordinates[0]);
                   } else {
                     //result.push(tmp.features.geometry.coordinates);
@@ -129,6 +224,7 @@ export default function Control (access_token, user_data) {
                 console.error('Error fetching GeoJSON:', error);
             }
         }
+
         async function loadMarker() {
           let markers = await fetchGeoJSON(user_data);
           let geojson = {
@@ -156,15 +252,14 @@ export default function Control (access_token, user_data) {
               .addTo(map.current);
             
               markerIcon.addEventListener('click', () => {
-                // Open the modal when the marker is clicked
-                //openModal(marker.name);
+                console.dir('marker :' + JSON.stringify(marker.geometry.coordinates));
+                setselectedMarker(marker.geometry.coordinates);
                 setIsModalOpenUpdate(true);
               });
             });
-
           });
+          setMarkersLoaded(true);
         }
-        loadMarker();
         map.current.on('contextmenu', (e) => {
           e.preventDefault();
           const lngLat = e.lngLat;
@@ -175,7 +270,7 @@ export default function Control (access_token, user_data) {
           //map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
           //return () => { map.current.remove()};
       });
-
+      
     return (
         <Layout>
                 <style jsx>{`
@@ -192,15 +287,13 @@ export default function Control (access_token, user_data) {
                     <p>latitude: {lngLatSelected.lat}</p>
                   </Modal>
                   <Modal title="Modification du marqueur" open={isModalOpenUpdate} onOk={handleOkUpdate} onCancel={handleCancelUpdate}>
-                    <p>longitude : </p> < Input placeholder="longitude" onChange={e => { setnewlgn(e.currentTarget.value); }}/>
-                    <p></p>
-                    <p>latitude: </p><Input placeholder="latitude" onChange={e => { setnewlat(e.currentTarget.value); }}/>
+                    <p>Addresse : </p>
+                    <SearchBar childState={parentState} updateParentState={updateParentState} />
                     <p></p>
                     <Button key="submit" type="primary" onClick={handleSubmit}>
                       Submit
                     </Button>
                     </Modal>
-            <title>Hik'UP Admin</title>
         </Layout>
     );
 }

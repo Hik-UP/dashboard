@@ -29,15 +29,14 @@ const Login = () => {
         //const rslt = JSON.parse(response);
         setLoading(false);
         if (response.status === 200) {
-            if (response.data.user.roles[0] == "ADMIN") {
+          //  if (response.data.user.roles[0] == "ADMIN") {
                 console.log(response.data.user.roles[0]);
                 AccessTokenService.set(response.data.user.token);
                 UserDataService.set(response.data.user);
-
                 await Router.push('/control');
-            } else {
-                setError("Non Admin Users");
-            }
+           // } else {
+           //     setError("Non Admin Users");
+           // }
         } else if (response.status === 401)
             setError("Bad credentials");
         else

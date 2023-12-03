@@ -7,9 +7,8 @@ class UserDataService {
         if (this.userData)
             return this.userData;
         if (localStorage === undefined)
-            return null;
-        const userData = localStorage.getItem(storageName2);
-        this.userData = userData
+            return null; 
+        const userData = JSON.parse(localStorage.getItem(storageName2));
         return userData;
     }
 

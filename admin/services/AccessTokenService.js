@@ -1,4 +1,4 @@
-const storageName = "access_token";
+const storageName = "access_token_hikup";
 
 class AccessTokenService {
     accessToken = null;
@@ -6,7 +6,6 @@ class AccessTokenService {
     get() {
         if (this.accessToken)
             return this.accessToken;
-
         if (localStorage === undefined)
             return null;
         const accessToken = localStorage.getItem(storageName);
