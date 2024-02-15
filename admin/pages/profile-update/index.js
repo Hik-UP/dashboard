@@ -49,7 +49,7 @@ export default function ProfileUpdate () {
 
     return (
         <Layout>
-        <Card style={{marginTop: "17%",alignVertical:"25%",left: "25%", width: "50%", alignHorizontal: "25%"}}>
+        <Card style={{marginTop: "10%", alignVertical:"25%", left: "25%", width: "50%", alignHorizontal: "25%"}}>
         <Title level={2} style={{marginTop:"0%"}}>Profile Update</Title> 
         <Form style={{marginTop:"5%"}} >
           <Form.Item label="Username">

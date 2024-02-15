@@ -22,9 +22,11 @@ export default function Control (access_token, user_data) {
     const [Trails, setTrails] = useState([]);
     const [lngLatSelected, setlngLatSelected] = useState(false);
     const [markersLoaded, setMarkersLoaded] = useState(false);
-
     const [username, setInputValueUsername] = useState('');
     const [email, setInputValueEmail] = useState('');
+    const [Markers, setMarkers] = useState([]);
+    const [Markers1, setMarkers1] = useState('');
+    const [Markers2, setMarkers2] = useState('');
 
     const [lng, setLng] = useState(2.35);
     const [lat, setLat] = useState(48.85);
@@ -146,8 +148,9 @@ export default function Control (access_token, user_data) {
         trail.address = "Added by admin in dashboard";
         trail.description = "Added by admin in dashboard";
         trail.pictures = ["https://google.com"];
-        trail.latitude = lngLatSelected.lat;
-        trail.longitude = lngLatSelected.lng;
+        let coord = await fetchCoordinates();
+        trail.latitude = coord[1];
+        trail.longitude = coord[0];
         trail.difficulty = 0;
         trail.duration = 0;
         trail.distance = 0;
@@ -163,8 +166,8 @@ export default function Control (access_token, user_data) {
             geometry: {
               type: 'Point',
               coordinates: [[
-                lngLatSelected.lng,
-                lngLatSelected.lat
+                coord[0],
+                coord[1]
               ]]}}]}
         trail.geoJSON = JSON.stringify(geojson);
         const response = await API.CreateMarker('POST', '/api/trail/create', user_data, trail, true);
@@ -182,15 +185,22 @@ export default function Control (access_token, user_data) {
     };
 
     useEffect(() => {
+     const marker = loadMarker();
+     console.log("returned by loadMarker(): " + marker[0]);
+     //const myArray = Markers[0]?.split(",");
+     //console.log(myArray);
+     //console.log("Markers[0] : " + Markers[0] + " Markers[1] : " + Markers[0]);
         const user_data = UserDataService.get();
-        loadMarker();
         if (map.current && markersLoaded == true ) return;
-        map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [lng, lat],
-        zoom: zoom
-        });
+        console.log("markers: " + Markers1+ " " + Markers2);
+          map.current = new mapboxgl.Map({
+            container: mapContainer.current,
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [Markers1, Markers2],
+            //center: [lng, lat],
+            zoom: zoom
+            });
+
         map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
         map.current.addControl(
           new mapboxgl.GeolocateControl({
@@ -219,6 +229,14 @@ export default function Control (access_token, user_data) {
                   }
                 });
                 console.log(result);
+                console.log(typeof(result.slice(-1)));
+                let tmp = JSON.stringify(result.slice(-1));
+                const last1 = tmp.split(",")[0].replaceAll('[', '');
+                const last2 = tmp.split(",")[1].replaceAll(']', '');
+                console.log("test " + last1 + " "+ last2);
+                setMarkers1(last1);
+                setMarkers2(last2);
+                setMarkers(result.slice(-1));
                 return result;
             } catch (error) {
                 console.error('Error fetching GeoJSON:', error);
@@ -246,7 +264,6 @@ export default function Control (access_token, user_data) {
             markerIcon.style.backgroundImage = 'url(/custom-marker.png)';
             markerIcon.style.width =  '60px';
             markerIcon.style.height = '90px';
-            
             new mapboxgl.Marker(markerIcon)
               .setLngLat(marker.geometry.coordinates)
               .addTo(map.current);
@@ -259,6 +276,7 @@ export default function Control (access_token, user_data) {
             });
           });
           setMarkersLoaded(true);
+          return markers;
         }
         map.current.on('contextmenu', (e) => {
           e.preventDefault();
@@ -281,16 +299,20 @@ export default function Control (access_token, user_data) {
                     }
                     `}</style>
                     <div ref={mapContainer} className="map-container"/>
-                    <Modal title="Ajout de marqueur" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
+                    <Modal title="Ajout du marqueur" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
                     <p>Voulez vous ajouter un marqueur à l'emplacement : </p>
-                    <p>longitude : {lngLatSelected.lng} </p>
-                    <p>latitude: {lngLatSelected.lat}</p>
+                    <p>Addresse : </p>
+                    <SearchBar childState={parentState} updateParentState={updateParentState} />
+                    <p></p>
+                    <Button  key="submit" type="primary" onClick={handleOk}>
+                      Submit
+                    </Button>
                   </Modal>
                   <Modal title="Modification du marqueur" open={isModalOpenUpdate} onOk={handleOkUpdate} onCancel={handleCancelUpdate}>
                     <p>Addresse : </p>
                     <SearchBar childState={parentState} updateParentState={updateParentState} />
                     <p></p>
-                    <Button key="submit" type="primary" onClick={handleSubmit}>
+                    <Button  key="submit" type="primary" onClick={handleSubmit}>
                       Submit
                     </Button>
                     </Modal>

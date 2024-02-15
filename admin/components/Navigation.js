@@ -27,7 +27,7 @@ const Navigation = () => {
     }
 
     return (
-        <Menu theme="dark" mode="inline" selectedKeys={[activeMenus[router.pathname]]}>
+        <Menu theme="dark" mode="inline" selectedKeys={[activeMenus[router.pathname]]} style={{height: "90vh"}}>
             <Menu.Item
                 key={"/control"}
                 icon={<FontAwesomeIcon icon={faTv} style={{marginRight: 10}} />}
@@ -43,7 +43,7 @@ const Navigation = () => {
                 Profile
             </Menu.Item>
             <Menu.Item
-                style={{marginTop: "380%"}}
+                style={{marginTop: "83vh"}}
                 key="/logout"
                 icon={<LogoutOutlined />}
                 onClick={logout}

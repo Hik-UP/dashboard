@@ -44,8 +44,11 @@ const Login = () => {
     }
 
     return (
-        <Layout style={{height: "100vh"}}>
-            <Card style={{width: 400, backgroundColor: "#fff", margin: "auto", textAlign: "center"}}>
+        <div style={{height: "100vh", backgroundImage: `url("./static/images/background.png")`}}>
+            <div style={{paddingLeft:"47%", paddingTop: "10%"}}>
+            <img style={{width: 200, top:"20%",  display: "flex", textAlign:"center"}} src="/static/images/logo-background.png"></img>
+            </div>
+            <Card style={{position: "center",  width: 400, backgroundColor: "#fff", margin: "auto", textAlign: "center", backgroundColor: 'black' }}>
                 {error && (
                     <Alert style={{marginBottom: 30}} message={error} type="error" />
                 )}
@@ -65,12 +68,12 @@ const Login = () => {
                     type={"primary"}
                     onClick={submit}
                     loading={loading}
-                    style={{marginTop: 20}}
+                    style={{marginTop: 20, backgroundColor: "#0C3C28",  borderRadius: "200px", borderColor: "#15FF75"}}
                 >
                     Submit
                 </Button>
             </Card>
-        </Layout>
+            </div>
     );
 }
 
