@@ -185,8 +185,7 @@ export default function Control (access_token, user_data) {
     };
 
     useEffect(() => {
-     const marker = loadMarker();
-     console.log("returned by loadMarker(): " + marker[0]);
+     loadMarker();
      //const myArray = Markers[0]?.split(",");
      //console.log(myArray);
      //console.log("Markers[0] : " + Markers[0] + " Markers[1] : " + Markers[0]);
@@ -200,7 +199,6 @@ export default function Control (access_token, user_data) {
             //center: [lng, lat],
             zoom: zoom
             });
-
         map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
         map.current.addControl(
           new mapboxgl.GeolocateControl({
@@ -287,7 +285,7 @@ export default function Control (access_token, user_data) {
         });
           //map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
           //return () => { map.current.remove()};
-      });
+      }, [Markers1, Markers2]);
       
     return (
         <Layout>
